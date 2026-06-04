@@ -17,12 +17,15 @@ Each invocation produces a `<business-slug>/` directory containing:
 - Next.js 15 (App Router) + TypeScript + Tailwind
 - RTL Hebrew layout (`lang="he-IL"`, `dir="rtl"`, Heebo + JetBrains Mono)
 - Per-business design tokens (palette + typography + hierarchy) — sourced from `/ui-design:color-system` / `/ui-design:typography-scale` / `/ui-design:visual-hierarchy` (Owl-Listener)
+- **Competitive intel file** (`competitive-intel.json`) — top 5 Google competitors analyzed for hero patterns, CTAs, pricing display, trust signals, structure. Used to inform copy and wireframe.
 - Niche-specific page structure (menu for restaurants, articles log for lawyers, emergency CTA for tradesmen)
 - Lead form wired to `https://www.autoflowr.co.il/api/whatsapp/send-lead` (proxied via `/app/api/lead/route.ts`)
+- **Full SEO + GEO**: Next.js Metadata API, `app/sitemap.ts`, `app/robots.ts`, LocalBusiness JSON-LD with geocoded coordinates (OpenStreetMap Nominatim), NAP consistency, Waze + Google Maps embed, IndexNow ping on deploy
 - Meta Pixel + GA4 + Clarity tracking pre-installed
 - JSON-LD schema (Service + LocalBusiness + BreadcrumbList + FAQPage)
 - Hero + OG images generated via `/peleg` (Gemini NanoBanana)
 - CSP headers matching the autoflowr-site production setup
+- **Weekly blog automation** — Telegram-approved (3 articles/week via Claude Haiku → Bar taps APPROVE/REJECT → auto-publishes to `/blog/<slug>`). Generated `SETUP-BLOG.md` walks through the per-business Telegram bot + GitHub Action setup once per client.
 
 ## Install
 
@@ -149,8 +152,10 @@ Remaining phases:
 - Phase 2: Next.js scaffolder
 - Phase 3: Cloudflare Tunnel
 - Phase 4: Niche-specific components
-- Phase 5: Claude API research → real Hebrew copy
+- Phase 4.5: **Competitive analysis** (WebSearch + WebFetch on top 5 Google results → conversion patterns inform copy + structure)
+- Phase 5: Claude API research → real Hebrew copy (uses competitive intel from 4.5)
 - Phase 6: /peleg image generation
-- Phase 7: Tracking + JSON-LD schema injection
+- Phase 7: **Full SEO + GEO** (Metadata API, sitemap, robots, LocalBusiness JSON-LD, Nominatim geocoding, NAP consistency, Maps embed, IndexNow)
 - Phase 8: `--deploy` + `--push`
 - Phase 9: `--mode=lead-gen` end-to-end
+- Phase 10: **Telegram-approved weekly blog automation** (cron → Claude Haiku drafts 3 articles → Telegram approval → auto-publish via git commit + Vercel rebuild)
