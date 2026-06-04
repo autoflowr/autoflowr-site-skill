@@ -1,0 +1,53 @@
+import { NextResponse } from "next/server";
+import { normalizePhoneIL } from "@/lib/utils/normalizePhoneIL";
+import { sanitizeLine } from "@/lib/utils/sanitize";
+import { checkOrigin, rateLimit, validateLeadInput } from "@/lib/utils/guards";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  const originCheck = checkOrigin(req);
+  if (!originCheck.ok) {
+    return NextResponse.json({ ok: false, error: "origin" }, { status: 403 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  if (!rateLimit(ip, "lead", 5, 3600_000)) {
+    return NextResponse.json({ ok: false, error: "rate-limited" }, { status: 429 });
+  }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "bad-json" }, { status: 400 });
+  }
+
+  const errors = validateLeadInput(body);
+  if (errors.length) {
+    return NextResponse.json({ ok: false, error: "validation", details: errors }, { status: 422 });
+  }
+
+  const name = sanitizeLine(String(body.name || "")).slice(0, 80);
+  const phone = normalizePhoneIL(String(body.phone || ""));
+  const message = sanitizeLine(String(body.message || "")).slice(0, 500);
+
+  const upstream = "{{leadEndpoint}}";
+  try {
+    const resp = await fetch(upstream, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        phone,
+        message,
+        source: process.env.NEXT_PUBLIC_BUSINESS_SLUG || "{{slug}}",
+        business: "{{businessName}}",
+      }),
+    });
+    const json = await resp.json().catch(() => ({}));
+    return NextResponse.json(json, { status: resp.status });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: "upstream", message: err?.message }, { status: 502 });
+  }
+}

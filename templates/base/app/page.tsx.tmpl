@@ -1,0 +1,17 @@
+import Hero from "@/components/Hero";
+import LeadForm from "@/components/LeadForm";
+import Footer from "@/components/Footer";
+import StickyWhatsapp from "@/components/StickyWhatsapp";
+{{sectionImports}}
+
+export default function HomePage() {
+  return (
+    <main id="main">
+      <Hero />
+{{sectionRenders}}
+      <LeadForm />
+      <Footer />
+      <StickyWhatsapp />
+    </main>
+  );
+}

@@ -1,0 +1,61 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import Link from "next/link";
+
+export const revalidate = 3600;
+
+type Post = { slug: string; title: string; date: string; excerpt: string };
+
+async function listPosts(): Promise<Post[]> {
+  const dir = path.join(process.cwd(), "content", "blog");
+  let files: string[];
+  try {
+    files = await fs.readdir(dir);
+  } catch {
+    return [];
+  }
+  const posts: Post[] = [];
+  for (const f of files.filter((x) => x.endsWith(".mdx") || x.endsWith(".md"))) {
+    const raw = await fs.readFile(path.join(dir, f), "utf8");
+    const meta = parseFrontmatter(raw);
+    posts.push({
+      slug: f.replace(/\.(mdx|md)$/, ""),
+      title: meta.title || f,
+      date: meta.date || "",
+      excerpt: meta.excerpt || "",
+    });
+  }
+  posts.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  return posts;
+}
+
+function parseFrontmatter(raw: string): Record<string, string> {
+  const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!m) return {};
+  const out: Record<string, string> = {};
+  for (const line of m[1].split("\n")) {
+    const kv = line.match(/^(\w+):\s*(.+)$/);
+    if (kv) out[kv[1]] = kv[2].replace(/^["']|["']$/g, "");
+  }
+  return out;
+}
+
+export default async function BlogIndex() {
+  const posts = await listPosts();
+  return (
+    <main className="max-w-3xl mx-auto px-6 py-16">
+      <h1 className="text-4xl font-extrabold mb-2">בלוג {{businessName}}</h1>
+      <p className="text-text/80 mb-10">תכנים חדשים כל שבוע.</p>
+      {posts.length === 0 && <p className="text-mute">אין מאמרים עדיין. הצ'ק-אין הראשון יפורסם ביום ראשון הקרוב.</p>}
+      <div className="space-y-4">
+        {posts.map((p) => (
+          <Link key={p.slug} href={`/blog/${p.slug}`} className="block rounded-xl border border-text/10 bg-surface p-6 hover:-translate-y-1 transition-transform">
+            <h2 className="text-xl font-bold mb-1">{p.title}</h2>
+            <p className="text-sm text-text/80 mb-2">{p.excerpt}</p>
+            <span className="text-xs text-mute">{p.date}</span>
+          </Link>
+        ))}
+      </div>
+    </main>
+  );
+}

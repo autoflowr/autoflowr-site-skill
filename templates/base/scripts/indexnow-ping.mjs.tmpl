@@ -1,0 +1,76 @@
+/**
+ * IndexNow auto-ping — submits sitemap URLs to Bing/Yandex/Seznam/DuckDuckGo.
+ * Modeled on autoflowr-site/scripts/indexnow-ping.mjs.
+ *
+ * Usage (run from project root):
+ *   node scripts/indexnow-ping.mjs --sitemap   # parses sitemap.xml + submits all URLs
+ *   node scripts/indexnow-ping.mjs <url>...    # submits specific URLs
+ */
+import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
+
+const INDEXNOW_KEY = "{{indexnowKey}}";
+const HOST = "{{siteHost}}";
+const ENDPOINTS = [
+  "https://www.bing.com/indexnow",
+  "https://yandex.com/indexnow",
+  "https://search.seznam.cz/indexnow",
+];
+
+async function main() {
+  const args = process.argv.slice(2);
+  let urls = [];
+
+  if (args.includes("--sitemap")) {
+    const sitemapPath = "public/sitemap.xml";
+    if (!existsSync(sitemapPath)) {
+      // Next.js generates sitemap dynamically — fetch from running site
+      const siteUrl = "{{siteUrl}}";
+      const resp = await fetch(`${siteUrl}/sitemap.xml`);
+      const xml = await resp.text();
+      urls = parseSitemap(xml);
+    } else {
+      const xml = await fs.readFile(sitemapPath, "utf8");
+      urls = parseSitemap(xml);
+    }
+  } else {
+    urls = args;
+  }
+
+  if (urls.length === 0) {
+    console.error("No URLs to submit.");
+    process.exit(1);
+  }
+
+  const payload = {
+    host: HOST,
+    key: INDEXNOW_KEY,
+    keyLocation: `https://${HOST}/${INDEXNOW_KEY}.txt`,
+    urlList: urls,
+  };
+
+  for (const endpoint of ENDPOINTS) {
+    try {
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      console.log(`${endpoint} → ${r.status}`);
+    } catch (e) {
+      console.error(`${endpoint} failed:`, e.message);
+    }
+  }
+}
+
+function parseSitemap(xml) {
+  const urls = [];
+  const re = /<loc>([^<]+)<\/loc>/g;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    urls.push(m[1].trim());
+  }
+  return urls;
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

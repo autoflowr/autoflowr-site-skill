@@ -1,0 +1,27 @@
+import type { MetadataRoute } from "next";
+
+const BASE = "{{siteUrl}}";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      { userAgent: "*", allow: "/" },
+      // AI-search citation crawlers — allowed
+      { userAgent: "GPTBot", allow: "/" },
+      { userAgent: "OAI-SearchBot", allow: "/" },
+      { userAgent: "ClaudeBot", allow: "/" },
+      { userAgent: "PerplexityBot", allow: "/" },
+      { userAgent: "Google-Extended", allow: "/" },
+      { userAgent: "Applebot-Extended", allow: "/" },
+      { userAgent: "Bingbot", allow: "/" },
+      { userAgent: "AmazonBot", allow: "/" },
+      { userAgent: "Meta-ExternalAgent", allow: "/" },
+      // Bulk-training scrapers — disallowed
+      { userAgent: "CCBot", disallow: "/" },
+      { userAgent: "Bytespider", disallow: "/" },
+      { userAgent: "cohere-ai", disallow: "/" },
+      { userAgent: "Diffbot", disallow: "/" },
+    ],
+    sitemap: `${BASE}/sitemap.xml`,
+  };
+}

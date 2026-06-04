@@ -1,0 +1,27 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        text: "var(--text)",
+        mute: "var(--mute)",
+        accent: "var(--accent)",
+      },
+      fontFamily: {
+        body: ['"{{headingFont}}"', "system-ui", "sans-serif"],
+        heading: ['"{{headingFont}}"', "system-ui", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        glow: "0 6px 24px var(--accent-glow)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

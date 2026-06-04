@@ -1,0 +1,20 @@
+import NapBlock from "./NapBlock";
+
+export default function Footer() {
+  return (
+    <footer className="border-t border-text/10 mt-12">
+      <div className="max-w-5xl mx-auto px-6 py-12 grid gap-8 md:grid-cols-2">
+        <NapBlock />
+        <div className="text-sm text-mute md:text-end">
+          <p>© {new Date().getFullYear()} {{businessName}}</p>
+          <p>
+            <a href="/seo-check" className="hover:text-accent">בדיקת SEO חינם</a>
+            {" · "}
+            <a href="/privacy" className="hover:text-accent">פרטיות</a>
+          </p>
+          <p className="mt-2 opacity-70">אתר בנייה: Autoflowr Studio</p>
+        </div>
+      </div>
+    </footer>
+  );
+}

@@ -1,0 +1,16 @@
+name: weekly-blog
+on:
+  schedule:
+    - cron: "0 6 * * 0"   # Sunday 09:00 IST (06:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger blog draft endpoint
+        run: |
+          curl -fsSL -X POST "${{ secrets.DEPLOY_URL }}/api/blog/draft" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'

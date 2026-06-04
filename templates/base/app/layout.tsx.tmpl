@@ -1,0 +1,65 @@
+import type { Metadata } from "next";
+import { Heebo, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+import TrackingScripts from "@/components/TrackingScripts";
+import JsonLd from "@/app/(seo)/JsonLd";
+
+const heebo = Heebo({
+  subsets: ["hebrew", "latin"],
+  display: "swap",
+  variable: "--font-body",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  preload: true,
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+  weight: ["400", "500", "600"],
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL("{{siteUrl}}"),
+  title: {
+    default: "{{businessName}} | {{tagline}}",
+    template: "%s | {{businessName}}",
+  },
+  description: "{{metaDescription}}",
+  applicationName: "{{businessName}}",
+  alternates: {
+    canonical: "/",
+    languages: { "he-IL": "/" },
+  },
+  openGraph: {
+    type: "website",
+    locale: "he_IL",
+    url: "{{siteUrl}}",
+    siteName: "{{businessName}}",
+    title: "{{businessName}} | {{tagline}}",
+    description: "{{metaDescription}}",
+    images: [{ url: "/og/og.png", width: 1200, height: 630, alt: "{{businessName}}" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "{{businessName}}",
+    description: "{{metaDescription}}",
+    images: ["/og/og.png"],
+  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
+  icons: { icon: "/favicon.ico", apple: "/apple-touch-icon.png" },
+  manifest: "/manifest.webmanifest",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="he-IL" dir="rtl" className={`${heebo.variable} ${jetbrains.variable}`}>
+      <body>
+        <a href="#main" className="skip-link">דלגו לתוכן</a>
+        <JsonLd />
+        {children}
+        <TrackingScripts />
+      </body>
+    </html>
+  );
+}

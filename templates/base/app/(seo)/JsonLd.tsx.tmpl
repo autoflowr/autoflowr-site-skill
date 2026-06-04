@@ -1,0 +1,9 @@
+export default function JsonLd() {
+  const ld = {{jsonLdJson}};
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+    />
+  );
+}

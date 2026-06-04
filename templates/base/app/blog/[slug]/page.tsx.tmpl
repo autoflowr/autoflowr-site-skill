@@ -1,0 +1,73 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+async function loadPost(slug: string) {
+  const file = path.join(process.cwd(), "content", "blog", `${slug}.mdx`);
+  try {
+    const raw = await fs.readFile(file, "utf8");
+    return parseMarkdown(raw);
+  } catch {
+    const altFile = path.join(process.cwd(), "content", "blog", `${slug}.md`);
+    try {
+      const raw = await fs.readFile(altFile, "utf8");
+      return parseMarkdown(raw);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function parseMarkdown(raw: string) {
+  const m = raw.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
+  const meta: Record<string, string> = {};
+  let body = raw;
+  if (m) {
+    for (const line of m[1].split("\n")) {
+      const kv = line.match(/^(\w+):\s*(.+)$/);
+      if (kv) meta[kv[1]] = kv[2].replace(/^["']|["']$/g, "");
+    }
+    body = m[2];
+  }
+  return { meta, body };
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await loadPost(slug);
+  if (!post) return {};
+  return {
+    title: post.meta.title,
+    description: post.meta.excerpt,
+    openGraph: { title: post.meta.title, description: post.meta.excerpt },
+  };
+}
+
+export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = await loadPost(slug);
+  if (!post) notFound();
+
+  const blogPostingLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.meta.title,
+    "datePublished": post.meta.date,
+    "author": { "@type": "Organization", "name": "{{businessName}}" },
+    "speakable": { "@type": "SpeakableSpecification", "cssSelector": ["h1", "article p:first-of-type"] },
+  };
+
+  return (
+    <main className="max-w-2xl mx-auto px-6 py-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingLd) }} />
+      <article>
+        <h1 className="text-4xl font-extrabold mb-3">{post.meta.title}</h1>
+        <div className="text-sm text-mute mb-8">{post.meta.date}</div>
+        <div className="prose-blog leading-relaxed whitespace-pre-wrap">{post.body}</div>
+      </article>
+    </main>
+  );
+}

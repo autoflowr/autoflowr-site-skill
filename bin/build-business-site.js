@@ -6,6 +6,11 @@ import { fileURLToPath } from "node:url";
 import fs from "fs-extra";
 import slugify from "slugify";
 import { generateWireframe } from "../lib/wireframe.js";
+import { scaffoldProject, printPostScaffoldHelp } from "../lib/scaffolder.js";
+import { startDevWithTunnel, checkCloudflaredInstalled } from "../lib/tunnel.js";
+import { deployVercel, pushGitHub, checkVercelInstalled, checkGhInstalled } from "../lib/deploy.js";
+import { researchBusiness } from "../lib/research.js";
+import { generateImages } from "../lib/image-gen.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.resolve(__dirname, "..");
@@ -44,6 +49,8 @@ program
   .option("--out-dir <dir>", "Output directory (defaults to cwd)")
   .option("--design-file <path>", "JSON file with palette/typography/hierarchy from designer-skills")
   .option("--palette <name>", "Pick a niche-fallback palette by name (when no --design-file)")
+  .option("--site-url <url>", "Production site URL (used in JSON-LD canonical, OG, sitemap)")
+  .option("--no-images", "Skip /peleg image generation (faster runs for testing)")
   .action(async (businessName, niche, opts) => {
     try {
       await run(businessName, niche, opts);
@@ -57,9 +64,41 @@ program
 program.parse();
 
 async function run(businessName, niche, opts) {
+  // --deploy / --push: ship modes that operate on an existing project dir.
   if (opts.deploy || opts.push) {
-    console.log(kleur.yellow("→ Deploy/push modes will be wired up in Phase 8."));
-    console.log(kleur.gray("  For now, manually run: vercel deploy --prod  /  gh repo create <slug> --public --source . --push"));
+    const projectDir = path.resolve(opts.outDir || process.cwd());
+    // If businessName looks like a slug (no spaces, lowercase), treat as existing project ref.
+    let targetDir = projectDir;
+    if (businessName && !niche) {
+      const candidate = path.resolve(opts.outDir || process.cwd(), makeSlug(businessName));
+      if (await fs.pathExists(path.join(candidate, "package.json"))) {
+        targetDir = candidate;
+      }
+    }
+    if (!(await fs.pathExists(path.join(targetDir, "package.json")))) {
+      console.error(kleur.red(`✖ No Next.js project found at ${targetDir}.`));
+      console.error(kleur.gray("  Run the generator first, then re-run with --deploy from inside the slug directory."));
+      process.exit(1);
+    }
+
+    if (opts.push) {
+      if (!(await checkGhInstalled())) {
+        console.error(kleur.red("✖ gh CLI not found. Install: https://cli.github.com/"));
+        process.exit(1);
+      }
+      const slug = path.basename(targetDir);
+      const url = await pushGitHub({ projectDir: targetDir, repoOwner: opts.repoOwner, slug });
+      console.log(kleur.green("✓ Pushed: ") + kleur.cyan(url));
+    }
+
+    if (opts.deploy) {
+      if (!(await checkVercelInstalled())) {
+        console.error(kleur.red("✖ vercel CLI not found. Install: npm i -g vercel && vercel login"));
+        process.exit(1);
+      }
+      const url = await deployVercel(targetDir);
+      console.log(kleur.green("✓ Deployed: ") + kleur.cyan(url));
+    }
     return;
   }
 
@@ -123,7 +162,106 @@ async function run(businessName, niche, opts) {
     return;
   }
 
-  console.log(kleur.yellow("→ Phase B (scaffold) will be implemented in Phase 2."));
+  // Phase B — scaffold
+  console.log(kleur.bold("→ Phase B: Scaffolding Next.js project"));
+
+  // Try Claude research; falls back to niche-based copy if no API key
+  const competitiveIntelPath = path.join(outDir, "competitive-intel.json");
+  const competitiveIntel = await fs.pathExists(competitiveIntelPath)
+    ? await fs.readJson(competitiveIntelPath).catch(() => null)
+    : null;
+  const research = await researchBusiness({
+    businessName,
+    niche,
+    nicheCfg,
+    location: opts.location,
+    mode: opts.mode,
+    competitiveIntel,
+    skillRoot: SKILL_ROOT,
+  });
+  const { written } = await scaffoldProject({
+    businessName,
+    niche,
+    nicheCfg,
+    slug,
+    outDir,
+    mode: opts.mode,
+    location: opts.location,
+    designTokens,
+    research,
+    pixelId: opts.pixelId,
+    ga4Id: opts.ga4Id,
+    clarityId: opts.clarityId,
+    skillRoot: SKILL_ROOT,
+    siteUrl: opts.siteUrl,
+  });
+  console.log(kleur.green(`✓ Wrote ${written.length} files`));
+
+  // Phase 6 — images (commander turns --no-images into opts.images === false)
+  if (opts.images !== false) {
+    console.log(kleur.bold("→ Phase 6: Image generation"));
+    await generateImages({
+      outDir,
+      businessName,
+      niche,
+      designTokens,
+      imagePromptHints: nicheCfg.imagePromptHints || [],
+    });
+  }
+
+  if (opts.localOnly) {
+    printPostScaffoldHelp(outDir);
+    return;
+  }
+
+  // Phase C — Cloudflare Tunnel
+  console.log(kleur.bold("→ Phase C: Cloudflare Tunnel"));
+  const hasCloudflared = await checkCloudflaredInstalled();
+  if (!hasCloudflared) {
+    console.log(kleur.yellow("⚠ `cloudflared` not found in PATH."));
+    console.log(kleur.gray("  Install: winget install --id Cloudflare.cloudflared (Windows) or brew install cloudflared (macOS)"));
+    console.log(kleur.gray("  Then re-run, or use --local-only to skip the tunnel."));
+    printPostScaffoldHelp(outDir);
+    return;
+  }
+  await startDevWithTunnel({ projectDir: outDir, port: 3000, install: true });
+}
+
+function buildResearchFromNiche(nicheCfg, businessName, location) {
+  // Phase 5 will replace this with real Claude API research.
+  const ctas = nicheCtas(nicheCfg.niche);
+  const loc = location ? ` ב${location}` : "";
+  return {
+    heroHeadline: `${businessName}${loc}`,
+    heroSubtitle: nicheSubtitle(nicheCfg.niche, location),
+    primaryCta: ctas.primary,
+    secondaryCta: ctas.secondary,
+    faq: [],
+  };
+}
+
+function nicheCtas(niche) {
+  switch (niche) {
+    case "restaurant": return { primary: "להזמין שולחן", secondary: "התפריט" };
+    case "lawyer":     return { primary: "לקבוע פגישה", secondary: "וואטסאפ" };
+    case "clinic":     return { primary: "לקביעת תור", secondary: "שאלה בוואטסאפ" };
+    case "fitness":    return { primary: "שיעור ניסיון", secondary: "מסלולים" };
+    case "tradesman":  return { primary: "להזמין עכשיו", secondary: "וואטסאפ" };
+    case "beauty":     return { primary: "לקביעת תור", secondary: "גלריה" };
+    default:           return { primary: "צרו קשר", secondary: "וואטסאפ" };
+  }
+}
+
+function nicheSubtitle(niche, location) {
+  switch (niche) {
+    case "restaurant": return `מסעדה משפחתית${location ? " ב" + location : ""}. אוכל אמיתי, חוויה שמתחילה ברגע שאתם נכנסים.`;
+    case "lawyer":     return `ייעוץ ראשוני חינם, תמחור ברור, ליווי אישי מהתיק הראשון עד פסק הדין.`;
+    case "clinic":     return `קליניקה מאובזרת, צוות מנוסה, תוצאות שמדברות בעד עצמן.`;
+    case "fitness":    return `אימונים מותאמים אישית, מסלול ברור, ותוצאות תוך חודשיים.`;
+    case "tradesman":  return `קוראים — מגיעים. עובדים נקי, אחריות מלאה.`;
+    case "beauty":     return `טיפולים פרימיום בידיים מנוסות, סביבה רגועה.`;
+    default:           return `שירות אישי, מחירים הוגנים, ועבודה שמדברת בעד עצמה.`;
+  }
 }
 
 async function resolveDesignTokens({ opts, nicheCfg, slug, outDir }) {

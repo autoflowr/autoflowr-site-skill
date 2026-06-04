@@ -1,0 +1,126 @@
+import { NextResponse } from "next/server";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
+/**
+ * Telegram webhook for blog approval. Receives callback_query with:
+ *   - "approve:<slug>" → commit MDX to repo (or queue for next manual push)
+ *   - "reject:<slug>"  → discard
+ *
+ * Requires:
+ *   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GITHUB_TOKEN, GITHUB_REPO (owner/name)
+ *
+ * Setup the webhook once after deploy:
+ *   curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<DEPLOY_URL>/api/blog/approve"
+ */
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}));
+  const callback = body.callback_query;
+  if (!callback) return NextResponse.json({ ok: true });
+
+  const data = String(callback.data || "");
+  const [action, slug] = data.split(":");
+  if (!slug) return NextResponse.json({ ok: true });
+
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+  // Respond immediately so Telegram doesn't retry (6s timeout)
+  await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callback.id, text: action === "approve" ? "מאשר ומפרסם..." : "דוחה." }),
+  }).catch(() => null);
+
+  // Continue work in background
+  (async () => {
+    if (action === "approve") {
+      await publishDraft(slug, botToken, callback.message?.chat?.id);
+    } else {
+      await discardDraft(slug);
+    }
+  })();
+
+  return NextResponse.json({ ok: true });
+}
+
+async function publishDraft(slug: string, botToken: string | undefined, chatId: number | undefined) {
+  try {
+    const draftPath = path.join("/tmp/blog-drafts", `${slug}.json`);
+    const raw = await fs.readFile(draftPath, "utf8");
+    const draft = JSON.parse(raw);
+
+    const mdx = renderMdx(draft);
+    const ok = await commitToGitHub(`content/blog/${slug}.mdx`, mdx, `blog: publish ${slug}`);
+
+    if (botToken && chatId) {
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: ok ? `✅ פורסם: /blog/${slug}\nVercel יבנה את הדף תוך 2 דקות.` : `⚠ פרסום נכשל. בדוק את ה-GitHub token.`,
+        }),
+      }).catch(() => null);
+    }
+
+    try { await fs.unlink(draftPath); } catch {}
+  } catch (e) {
+    console.error("publishDraft error:", e);
+  }
+}
+
+async function discardDraft(slug: string) {
+  try {
+    await fs.unlink(path.join("/tmp/blog-drafts", `${slug}.json`));
+  } catch {}
+}
+
+function renderMdx(draft: { title: string; excerpt: string; body: string }): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `---
+title: "${draft.title.replace(/"/g, '\\"')}"
+excerpt: "${draft.excerpt.replace(/"/g, '\\"')}"
+date: ${today}
+---
+
+${draft.body}
+`;
+}
+
+async function commitToGitHub(filePath: string, contents: string, message: string): Promise<boolean> {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO; // owner/name
+  if (!token || !repo) return false;
+
+  try {
+    // Get the default branch SHA
+    const repoInfo = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "autoflowr-blog-bot" },
+    }).then((r) => r.json());
+    const branch = repoInfo.default_branch || "main";
+
+    const sha = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "autoflowr-blog-bot" },
+    }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.sha);
+
+    const body: any = {
+      message,
+      content: Buffer.from(contents, "utf8").toString("base64"),
+      branch,
+    };
+    if (sha) body.sha = sha;
+
+    const put = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "autoflowr-blog-bot", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return put.ok;
+  } catch (e) {
+    console.error("commitToGitHub failed:", e);
+    return false;
+  }
+}

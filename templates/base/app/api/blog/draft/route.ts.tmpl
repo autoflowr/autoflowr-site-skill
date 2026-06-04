@@ -1,0 +1,118 @@
+import { NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { dualChannel } from "@/lib/utils/dualChannel";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+
+export async function POST(req: Request) {
+  // Cron auth: either Vercel cron UA or shared CRON_SECRET
+  const ua = req.headers.get("user-agent") || "";
+  const auth = req.headers.get("authorization") || "";
+  const expected = process.env.CRON_SECRET || "";
+  const okCron = ua.startsWith("vercel-cron/") || (expected && auth === `Bearer ${expected}`);
+  if (!okCron) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!apiKey || !botToken || !chatId) {
+    return NextResponse.json({ ok: false, error: "missing-env" }, { status: 500 });
+  }
+
+  const topics = await loadTopics();
+  const usedSlugs = await loadExistingSlugs();
+  const available = topics.filter((t) => !usedSlugs.has(slugify(t)));
+  if (available.length < 3) {
+    return NextResponse.json({ ok: false, error: "topic-queue-low", remaining: available.length }, { status: 200 });
+  }
+
+  const chosen = available.slice(0, 3);
+  const client = new Anthropic({ apiKey });
+  const drafts = [];
+  for (const topic of chosen) {
+    try {
+      const resp = await client.messages.create({
+        model: HAIKU_MODEL,
+        max_tokens: 1500,
+        system: "אתה כותב מאמרי בלוג בעברית עבור עסק מקומי. עצור בכ-600 מילים, מבנה ברור עם H2/H3, מספרים קונקרטיים. החזר JSON: { title, excerpt, body } בלבד.",
+        messages: [{ role: "user", content: `כתוב מאמר על: "${topic}". העסק: {{businessName}} ({{niche}}).` }],
+      });
+      const text = resp.content?.[0]?.type === "text" ? resp.content[0].text : "";
+      const parsed = parseDraftJson(text);
+      if (parsed) drafts.push({ topic, slug: slugify(topic), ...parsed });
+    } catch (e) {
+      console.error("draft error:", e);
+    }
+  }
+
+  // Save drafts to repo-readable temp location (KV-less fallback: write to /tmp on Vercel)
+  const draftsDir = "/tmp/blog-drafts";
+  await fs.mkdir(draftsDir, { recursive: true });
+  for (const d of drafts) {
+    await fs.writeFile(path.join(draftsDir, `${d.slug}.json`), JSON.stringify(d), "utf8");
+  }
+
+  // Send Telegram messages with APPROVE/REJECT buttons
+  const tg = await dualChannel(Object.fromEntries(drafts.map((d, i) => [`draft${i}`, () => sendTelegramDraft(botToken, chatId, d)])));
+
+  return NextResponse.json({ ok: true, drafts: drafts.length, telegram: tg });
+}
+
+async function loadTopics(): Promise<string[]> {
+  try {
+    const file = path.join(process.cwd(), "content", "blog", "topic-queue.json");
+    const raw = await fs.readFile(file, "utf8");
+    return JSON.parse(raw);
+  } catch { return []; }
+}
+
+async function loadExistingSlugs(): Promise<Set<string>> {
+  try {
+    const dir = path.join(process.cwd(), "content", "blog");
+    const files = await fs.readdir(dir);
+    return new Set(files.filter((f) => f.endsWith(".mdx") || f.endsWith(".md")).map((f) => f.replace(/\.(mdx|md)$/, "")));
+  } catch { return new Set(); }
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().trim().replace(/[^\w֐-׿]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || `post-${Date.now()}`;
+}
+
+function parseDraftJson(text: string): { title: string; excerpt: string; body: string } | null {
+  const m = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+  try {
+    const obj = JSON.parse((m[1] || text).trim());
+    if (obj.title && obj.excerpt && obj.body) return obj;
+  } catch {}
+  return null;
+}
+
+async function sendTelegramDraft(botToken: string, chatId: string, draft: any) {
+  const text = `📝 *{{businessName}}*\n\n*${esc(draft.title)}*\n\n${esc(draft.excerpt)}\n\n\`${draft.slug}\``;
+  const body = {
+    chat_id: chatId,
+    text,
+    parse_mode: "MarkdownV2",
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "✅ APPROVE", callback_data: `approve:${draft.slug}` },
+        { text: "❌ REJECT", callback_data: `reject:${draft.slug}` },
+      ]],
+    },
+  };
+  const r = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return r.ok;
+}
+
+function esc(s: string): string {
+  return String(s).replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
+}

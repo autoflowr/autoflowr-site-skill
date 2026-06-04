@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
+/**
+ * Lightweight on-page SEO diagnostic. Fetches a URL and checks:
+ *   - HTTPS / canonical / viewport / language
+ *   - title length (50-60 chars)
+ *   - meta description length (140-160 chars)
+ *   - single <h1>
+ *   - Open Graph + Twitter Cards
+ *   - JSON-LD presence
+ *   - image alt coverage
+ *   - robots accessibility
+ *
+ * Modeled on autoflowr-site/api/ai/recommend.js — without the Haiku call,
+ * so it has no cost and no env-var requirement.
+ */
+export async function POST(req: Request) {
+  let body: any;
+  try { body = await req.json(); } catch { body = {}; }
+  const url = String(body.url || "").trim();
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return NextResponse.json({ ok: false, error: "url-required" }, { status: 400 });
+  }
+
+  try {
+    const resp = await fetch(url, {
+      headers: { "User-Agent": "AutoflowrSeoCheck/1.0 (+{{siteUrl}}/seo-check)" },
+      redirect: "follow",
+    });
+    const html = await resp.text();
+    const checks = runChecks(html, url, resp);
+    return NextResponse.json({ ok: true, url, checks, score: computeScore(checks) });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: "fetch-failed", message: e?.message }, { status: 502 });
+  }
+}
+
+function runChecks(html: string, url: string, resp: Response) {
+  const lower = html.toLowerCase();
+  const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").trim();
+  const desc = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i)?.[1] || "";
+  const h1Count = (lower.match(/<h1[\s>]/g) || []).length;
+  const hasViewport = /<meta\s+name=["']viewport["']/i.test(html);
+  const hasCanonical = /<link\s+rel=["']canonical["']/i.test(html);
+  const hasOg = /<meta\s+property=["']og:/i.test(html);
+  const hasTwitter = /<meta\s+name=["']twitter:/i.test(html);
+  const hasJsonLd = /application\/ld\+json/i.test(html);
+  const imgTotal = (lower.match(/<img\b/g) || []).length;
+  const imgAlt = (html.match(/<img[^>]+alt=["'][^"']+["']/gi) || []).length;
+  const altCoverage = imgTotal > 0 ? imgAlt / imgTotal : 1;
+  const lang = html.match(/<html[^>]+lang=["']([^"']+)["']/i)?.[1] || "";
+
+  return [
+    { id: "https", label: "HTTPS", status: url.startsWith("https://") ? "pass" : "fail", fix: "Use HTTPS in production." },
+    { id: "title", label: `Title (${title.length} chars)`, status: title.length >= 30 && title.length <= 65 ? "pass" : title ? "warn" : "fail", fix: "Title between 30–60 chars for best SERP display." },
+    { id: "description", label: `Meta description (${desc.length} chars)`, status: desc.length >= 120 && desc.length <= 165 ? "pass" : desc ? "warn" : "fail", fix: "Meta description between 140–160 chars." },
+    { id: "h1", label: `H1 count (${h1Count})`, status: h1Count === 1 ? "pass" : h1Count === 0 ? "fail" : "warn", fix: "Exactly one H1 per page." },
+    { id: "viewport", label: "Viewport meta", status: hasViewport ? "pass" : "fail", fix: "Add <meta name='viewport' content='width=device-width,initial-scale=1'>." },
+    { id: "canonical", label: "Canonical link", status: hasCanonical ? "pass" : "warn", fix: "Add <link rel='canonical'> to prevent duplicate content." },
+    { id: "og", label: "Open Graph", status: hasOg ? "pass" : "warn", fix: "Add og:title, og:description, og:image for social shares." },
+    { id: "twitter", label: "Twitter Cards", status: hasTwitter ? "pass" : "warn", fix: "Add twitter:card + twitter:image." },
+    { id: "schema", label: "JSON-LD schema", status: hasJsonLd ? "pass" : "warn", fix: "Add structured data (LocalBusiness, FAQPage, etc.) for rich results." },
+    { id: "altCoverage", label: `Alt text (${Math.round(altCoverage * 100)}% of ${imgTotal} images)`, status: altCoverage >= 0.8 ? "pass" : altCoverage > 0.4 ? "warn" : "fail", fix: "All images need descriptive alt for a11y + SEO." },
+    { id: "lang", label: `lang="${lang}"`, status: lang ? "pass" : "warn", fix: "Set lang attribute on <html> (he-IL for Hebrew sites)." },
+  ];
+}
+
+function computeScore(checks: any[]) {
+  const points = checks.reduce((sum, c) => sum + (c.status === "pass" ? 1 : c.status === "warn" ? 0.5 : 0), 0);
+  return Math.round((points / checks.length) * 100);
+}

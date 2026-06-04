@@ -1,0 +1,12 @@
+export default function NapBlock() {
+  return (
+    <address className="not-italic text-sm leading-relaxed">
+      <div className="font-bold text-base mb-1">{{businessName}}</div>
+      <div>{{address}}</div>
+      <div>
+        <a href="tel:{{phoneE164}}" className="hover:text-accent" dir="ltr">{{phoneDisplay}}</a>
+      </div>
+      <div>{{openingHoursDisplay}}</div>
+    </address>
+  );
+}
