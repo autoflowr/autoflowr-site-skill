@@ -10,12 +10,23 @@ import { generateWireframe } from "../lib/wireframe.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.resolve(__dirname, "..");
 
+// OWL palette reserved for --mode=lead-gen (Autoflowr's own funnel pages)
+const OWL_LEAD_GEN_PALETTE = {
+  name: "owl-lead-gen",
+  label: "OWL Autoflowr (lead-gen mode)",
+  bg: "#1A1A1C",
+  surface: "#13131A",
+  accent: "#A3E635",
+  text: "#FAFAFA",
+  mute: "#7A7A82",
+};
+
 const program = new Command();
 
 program
   .name("build-business-site")
   .description("Generate a per-business Next.js 15 website for Autoflowr Studio clients")
-  .version("0.1.0")
+  .version("0.2.0")
   .argument("[business-name]", "Business name (Hebrew or English, in quotes if multi-word)")
   .argument("[niche]", "One of: restaurant, lawyer, clinic, fitness, tradesman, beauty, _default")
   .option("--wireframe-only", "Generate wireframe.html and exit (skip scaffold)")
@@ -31,6 +42,8 @@ program
   .option("--clarity-id <id>", "Override default Clarity ID")
   .option("--price-from <number>", "Show pricing band starting from this number")
   .option("--out-dir <dir>", "Output directory (defaults to cwd)")
+  .option("--design-file <path>", "JSON file with palette/typography/hierarchy from designer-skills")
+  .option("--palette <name>", "Pick a niche-fallback palette by name (when no --design-file)")
   .action(async (businessName, niche, opts) => {
     try {
       await run(businessName, niche, opts);
@@ -44,14 +57,12 @@ program
 program.parse();
 
 async function run(businessName, niche, opts) {
-  // Handle the "ship" subcommands (--deploy / --push) which run inside an existing project dir
   if (opts.deploy || opts.push) {
     console.log(kleur.yellow("→ Deploy/push modes will be wired up in Phase 8."));
     console.log(kleur.gray("  For now, manually run: vercel deploy --prod  /  gh repo create <slug> --public --source . --push"));
     return;
   }
 
-  // Validation
   if (!businessName || !niche) {
     console.error(kleur.red("✖ Usage: build-business-site \"<business-name>\" <niche> [flags]"));
     console.error(kleur.gray("  Niches: restaurant, lawyer, clinic, fitness, tradesman, beauty, _default"));
@@ -66,21 +77,23 @@ async function run(businessName, niche, opts) {
 
   const slug = makeSlug(businessName);
   const outDir = path.resolve(opts.outDir || process.cwd(), slug);
+  await fs.ensureDir(outDir);
+
+  // Load niche config
+  const nicheCfg = await loadNicheConfig(niche);
+
+  // Resolve design tokens — priority: --design-file > --mode=lead-gen forces OWL > --palette name > niche default (palettes[0])
+  const designTokens = await resolveDesignTokens({ opts, nicheCfg, slug, outDir });
 
   console.log(kleur.bold().cyan(`\n  build-business-site\n`));
   console.log(kleur.gray(`  Business: ${kleur.white(businessName)}`));
   console.log(kleur.gray(`  Niche:    ${kleur.white(niche)}`));
   console.log(kleur.gray(`  Mode:     ${kleur.white(opts.mode)}`));
   console.log(kleur.gray(`  Slug:     ${kleur.white(slug)}`));
+  console.log(kleur.gray(`  Palette:  ${kleur.white(designTokens.palette.name)} ${kleur.dim("(" + designTokens.palette.label + ")")}`));
   console.log(kleur.gray(`  Out:      ${kleur.white(outDir)}\n`));
 
-  await fs.ensureDir(outDir);
-
-  // Load niche config
-  const nicheCfg = await loadNicheConfig(niche);
-
-  // Phase A — Wireframe (default unless --no-wireframe-gate)
-  const skipWireframeGate = opts.wireframeGate === false; // commander sets to false when --no-wireframe-gate
+  const skipWireframeGate = opts.wireframeGate === false;
   const wireframeOnly = !!opts.wireframeOnly;
 
   if (!skipWireframeGate || wireframeOnly) {
@@ -94,6 +107,7 @@ async function run(businessName, niche, opts) {
       mode: opts.mode,
       location: opts.location,
       priceFrom: opts.priceFrom,
+      designTokens,
       skillRoot: SKILL_ROOT,
     });
     console.log(kleur.green("✓ Wireframe ready: ") + kleur.cyan(wireframePath));
@@ -109,17 +123,78 @@ async function run(businessName, niche, opts) {
     return;
   }
 
-  // Phase B–D will be wired in subsequent build phases.
   console.log(kleur.yellow("→ Phase B (scaffold) will be implemented in Phase 2."));
-  console.log(kleur.gray("  For now, --no-wireframe-gate exits after the wireframe step."));
+}
+
+async function resolveDesignTokens({ opts, nicheCfg, slug, outDir }) {
+  // Priority 1: explicit --design-file (from Claude orchestrating designer-skills)
+  if (opts.designFile) {
+    const cfg = await fs.readJson(opts.designFile);
+    return {
+      palette: cfg.palette,
+      alternativePalettes: cfg.alternativePalettes || [],
+      typography: cfg.typography || defaultTypography(),
+      hierarchy: cfg.hierarchy || nicheCfg.pages,
+      source: "designer-skills",
+    };
+  }
+  // Priority 2: try <outDir>/design.json (Claude may write it there before invoking CLI)
+  const conventionalPath = path.join(outDir, "design.json");
+  if (await fs.pathExists(conventionalPath)) {
+    const cfg = await fs.readJson(conventionalPath);
+    return {
+      palette: cfg.palette,
+      alternativePalettes: cfg.alternativePalettes || [],
+      typography: cfg.typography || defaultTypography(),
+      hierarchy: cfg.hierarchy || nicheCfg.pages,
+      source: "designer-skills",
+    };
+  }
+  // Priority 3: --mode=lead-gen forces Autoflowr OWL
+  if (opts.mode === "lead-gen") {
+    return {
+      palette: OWL_LEAD_GEN_PALETTE,
+      alternativePalettes: [],
+      typography: defaultTypography(),
+      hierarchy: nicheCfg.pages,
+      source: "owl-lead-gen",
+    };
+  }
+  // Priority 4: --palette <name> picks from niche fallbacks
+  const palettes = nicheCfg.palettes || [];
+  if (palettes.length === 0) {
+    throw new Error(`Niche "${nicheCfg.niche}" has no palettes defined and no --design-file was provided.`);
+  }
+  let chosen = palettes[0];
+  if (opts.palette) {
+    const found = palettes.find((p) => p.name === opts.palette);
+    if (!found) {
+      throw new Error(`Palette "${opts.palette}" not found in niche "${nicheCfg.niche}". Available: ${palettes.map((p) => p.name).join(", ")}`);
+    }
+    chosen = found;
+  }
+  return {
+    palette: chosen,
+    alternativePalettes: palettes.filter((p) => p.name !== chosen.name),
+    typography: defaultTypography(),
+    hierarchy: nicheCfg.pages,
+    source: "niche-fallback",
+  };
+}
+
+function defaultTypography() {
+  return {
+    headingFont: "Heebo",
+    bodyFont: "Heebo",
+    monoFont: "JetBrains Mono",
+    scale: "1.250",
+  };
 }
 
 async function listNiches() {
   const nicheDir = path.join(SKILL_ROOT, "templates", "niches");
   const files = await fs.readdir(nicheDir);
-  return files
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => f.replace(/\.json$/, ""));
+  return files.filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, ""));
 }
 
 async function loadNicheConfig(niche) {
@@ -128,10 +203,8 @@ async function loadNicheConfig(niche) {
 }
 
 function makeSlug(name) {
-  // Hebrew slugify fallback: strip non-ASCII, lowercase, kebab
   const ascii = slugify(name, { lower: true, strict: true, locale: "he" });
   if (ascii && ascii.length >= 2) return ascii;
-  // If slugify returned empty (all Hebrew), fall back to transliteration map
   return transliterateHebrew(name);
 }
 

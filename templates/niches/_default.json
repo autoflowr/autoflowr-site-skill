@@ -3,7 +3,35 @@
   "schemaType": "LocalBusiness",
   "pages": ["home", "services", "about", "faq", "lead_form", "footer"],
   "requiredComponents": ["Hero", "ServicesList", "AboutBlock", "FaqAccordion", "LeadForm"],
-  "accentHex": "#A3E635",
+  "palettes": [
+    {
+      "name": "modern-sapphire",
+      "label": "ספיר מודרני / Modern Sapphire",
+      "bg": "#0F172A",
+      "surface": "#1E293B",
+      "accent": "#3B82F6",
+      "text": "#F8FAFC",
+      "mute": "#94A3B8"
+    },
+    {
+      "name": "warm-coral",
+      "label": "אלמוג חם / Warm Coral",
+      "bg": "#1A1816",
+      "surface": "#252320",
+      "accent": "#F97316",
+      "text": "#FAFAFA",
+      "mute": "#A89E92"
+    },
+    {
+      "name": "minimalist-cyan",
+      "label": "ציאן מינימליסטי / Minimalist Cyan",
+      "bg": "#18181B",
+      "surface": "#27272A",
+      "accent": "#22D3EE",
+      "text": "#FAFAFA",
+      "mute": "#A1A1AA"
+    }
+  ],
   "painPointSeeds": [
     "לקוחות לא מוצאים אותך ב-Google",
     "האתר הקיים לא ממיר ביקורים לפניות",

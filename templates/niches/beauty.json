@@ -3,7 +3,35 @@
   "schemaType": "BeautySalon",
   "pages": ["home", "services", "gallery", "booking", "about", "faq", "footer"],
   "requiredComponents": ["Hero", "ServicesList", "BeforeAfterGallery", "BookingForm", "AboutBlock", "FaqAccordion"],
-  "accentHex": "#EC4899",
+  "palettes": [
+    {
+      "name": "soft-blush",
+      "label": "ורד רך / Soft Blush",
+      "bg": "#1F1418",
+      "surface": "#291C22",
+      "accent": "#EC4899",
+      "text": "#FAFAFA",
+      "mute": "#B89DA8"
+    },
+    {
+      "name": "luxe-rose-gold",
+      "label": "ורד זהב / Rose Gold",
+      "bg": "#1F1612",
+      "surface": "#291F1A",
+      "accent": "#D97706",
+      "text": "#FAF7F4",
+      "mute": "#B8A595"
+    },
+    {
+      "name": "elegant-lavender",
+      "label": "לבנדר אלגנטי / Elegant Lavender",
+      "bg": "#181620",
+      "surface": "#22202B",
+      "accent": "#A78BFA",
+      "text": "#FAFAFA",
+      "mute": "#A89DB8"
+    }
+  ],
   "painPointSeeds": [
     "הלקוחות לא רואים את התוצאות שלכן לפני שמגיעות",
     "אין דרך לקבוע תור בלי להתקשר — מאבדים את 'הספונטניות'",

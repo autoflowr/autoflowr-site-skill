@@ -3,7 +3,35 @@
   "schemaType": "LegalService",
   "pages": ["home", "practice_areas", "about", "articles", "faq", "lead_form", "footer"],
   "requiredComponents": ["Hero", "PracticeAreasGrid", "AboutBlock", "ArticlesList", "FaqAccordion", "LeadForm"],
-  "accentHex": "#1E3A8A",
+  "palettes": [
+    {
+      "name": "trust-navy",
+      "label": "נייבי אמין / Trust Navy",
+      "bg": "#0F172A",
+      "surface": "#1A2536",
+      "accent": "#3B82F6",
+      "text": "#F1F5F9",
+      "mute": "#94A3B8"
+    },
+    {
+      "name": "burgundy-classic",
+      "label": "בורדו קלאסי / Burgundy Classic",
+      "bg": "#1A1416",
+      "surface": "#251C1F",
+      "accent": "#9F1239",
+      "text": "#FAF7F8",
+      "mute": "#A89399"
+    },
+    {
+      "name": "graphite-gold",
+      "label": "גרפיט זהב / Graphite Gold",
+      "bg": "#18181B",
+      "surface": "#27272A",
+      "accent": "#CA8A04",
+      "text": "#FAFAFA",
+      "mute": "#A1A1AA"
+    }
+  ],
   "painPointSeeds": [
     "לקוחות פוטנציאליים לא יודעים שאתה עוסק בתחום שלהם",
     "אין דרך לבחון את האמינות שלך לפני שהם מתקשרים",

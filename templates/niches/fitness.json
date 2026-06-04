@@ -3,7 +3,35 @@
   "schemaType": "ExerciseGym",
   "pages": ["home", "classes", "packages", "transformations", "trainers", "faq", "lead_form", "footer"],
   "requiredComponents": ["Hero", "ClassSchedule", "PackageCards", "BeforeAfterGrid", "TrainersGrid", "FaqAccordion", "LeadForm"],
-  "accentHex": "#F59E0B",
+  "palettes": [
+    {
+      "name": "energy-amber",
+      "label": "אנרגיה ענבר / Energy Amber",
+      "bg": "#1A1612",
+      "surface": "#241F1A",
+      "accent": "#F59E0B",
+      "text": "#FAFAFA",
+      "mute": "#A8A095"
+    },
+    {
+      "name": "athletic-red",
+      "label": "אדום אתלטי / Athletic Red",
+      "bg": "#1A0F0F",
+      "surface": "#241818",
+      "accent": "#EF4444",
+      "text": "#FAFAFA",
+      "mute": "#A89595"
+    },
+    {
+      "name": "electric-lime",
+      "label": "ליים חשמלי / Electric Lime",
+      "bg": "#0F1A0F",
+      "surface": "#182518",
+      "accent": "#65A30D",
+      "text": "#FAFAFA",
+      "mute": "#9CA89C"
+    }
+  ],
   "painPointSeeds": [
     "חברי הכושר עוזבים אחרי 3 חודשים",
     "אנשים מפחדים להגיע — לא יודעים מה לצפות",

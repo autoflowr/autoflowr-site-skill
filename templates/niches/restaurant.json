@@ -3,7 +3,35 @@
   "schemaType": "Restaurant",
   "pages": ["home", "menu", "reservations", "location", "gallery", "faq", "footer"],
   "requiredComponents": ["Hero", "MenuComponent", "ReservationForm", "LocationMap", "GalleryGrid"],
-  "accentHex": "#DC2626",
+  "palettes": [
+    {
+      "name": "warm-coffee",
+      "label": "קפה חם / Warm Coffee",
+      "bg": "#1A1410",
+      "surface": "#241B16",
+      "accent": "#DC2626",
+      "text": "#F5F0E8",
+      "mute": "#A8998A"
+    },
+    {
+      "name": "olive-rustic",
+      "label": "זית כפרי / Rustic Olive",
+      "bg": "#1A1F16",
+      "surface": "#252B20",
+      "accent": "#84A55E",
+      "text": "#F0EFE6",
+      "mute": "#9AA08C"
+    },
+    {
+      "name": "terracotta-cream",
+      "label": "טרקוטה שמנת / Terracotta Cream",
+      "bg": "#1F1612",
+      "surface": "#2B1F1A",
+      "accent": "#D2691E",
+      "text": "#FAF5EC",
+      "mute": "#B0A293"
+    }
+  ],
   "painPointSeeds": [
     "מקום ריק באמצע השבוע",
     "תלות בווייז/גוגל פתאום משנים אלגוריתם",

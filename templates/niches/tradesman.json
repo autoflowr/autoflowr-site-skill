@@ -3,7 +3,35 @@
   "schemaType": "HomeAndConstructionBusiness",
   "pages": ["home", "services", "service_area", "reviews", "faq", "lead_form", "footer"],
   "requiredComponents": ["Hero", "EmergencyBanner", "ServicesList", "ServiceAreaMap", "ReviewsBlock", "FaqAccordion", "LeadForm"],
-  "accentHex": "#EAB308",
+  "palettes": [
+    {
+      "name": "safety-yellow",
+      "label": "צהוב בטיחות / Safety Yellow",
+      "bg": "#1C1A14",
+      "surface": "#252220",
+      "accent": "#EAB308",
+      "text": "#FAFAFA",
+      "mute": "#A8A595"
+    },
+    {
+      "name": "industrial-orange",
+      "label": "כתום תעשייתי / Industrial Orange",
+      "bg": "#1A1410",
+      "surface": "#241F18",
+      "accent": "#EA580C",
+      "text": "#FAFAFA",
+      "mute": "#A89585"
+    },
+    {
+      "name": "trust-steel",
+      "label": "פלדה אמינה / Trust Steel",
+      "bg": "#161C24",
+      "surface": "#1F2937",
+      "accent": "#3B82F6",
+      "text": "#F8FAFC",
+      "mute": "#94A3B8"
+    }
+  ],
   "painPointSeeds": [
     "אנשים לא יודעים אם השירות מגיע לאזור שלהם",
     "אין דרך לקבל הצעת מחיר בלי לחשוף את הכתובת",
