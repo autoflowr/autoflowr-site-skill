@@ -1,0 +1,20 @@
+{
+  "niche": "tradesman",
+  "schemaType": "HomeAndConstructionBusiness",
+  "pages": ["home", "services", "service_area", "reviews", "faq", "lead_form", "footer"],
+  "requiredComponents": ["Hero", "EmergencyBanner", "ServicesList", "ServiceAreaMap", "ReviewsBlock", "FaqAccordion", "LeadForm"],
+  "accentHex": "#EAB308",
+  "painPointSeeds": [
+    "אנשים לא יודעים אם השירות מגיע לאזור שלהם",
+    "אין דרך לקבל הצעת מחיר בלי לחשוף את הכתובת",
+    "המתחרים גובים עליהם פרמיה כי הם 'הצלה' — לקוח רוצה אופציה אמינה אחרת",
+    "אתר ישן/לא קיים = פחות אמון = יותר טלפונים מבוטלים"
+  ],
+  "trustSignals": [
+    "תעודות הסמכה (חשמלאי מוסמך, רישיון אינסטלטור)",
+    "אחריות מפורשת על העבודה",
+    "ביקורות מ-Google + Easy.co.il",
+    "כיסוי ביטוחי מוצג"
+  ],
+  "imagePromptHints": ["trustworthy tradesman at work", "clean tools and uniform", "before/after of job completed", "company van or branding"]
+}

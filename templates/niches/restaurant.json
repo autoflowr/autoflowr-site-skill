@@ -1,0 +1,19 @@
+{
+  "niche": "restaurant",
+  "schemaType": "Restaurant",
+  "pages": ["home", "menu", "reservations", "location", "gallery", "faq", "footer"],
+  "requiredComponents": ["Hero", "MenuComponent", "ReservationForm", "LocationMap", "GalleryGrid"],
+  "accentHex": "#DC2626",
+  "painPointSeeds": [
+    "מקום ריק באמצע השבוע",
+    "תלות בווייז/גוגל פתאום משנים אלגוריתם",
+    "אין דרך להזמין מראש דרך הטלפון",
+    "הלקוחות לא יודעים מה התפריט עד שמגיעים"
+  ],
+  "trustSignals": [
+    "תמונות אוכל אמיתי (לא סטוק)",
+    "ביקורות מ-Google + Tripadvisor",
+    "מיקום + שעות פעילות בולטים"
+  ],
+  "imagePromptHints": ["food photography", "warm lighting", "intimate restaurant atmosphere", "hero dish closeup"]
+}

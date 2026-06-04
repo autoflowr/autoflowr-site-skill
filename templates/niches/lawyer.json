@@ -1,0 +1,20 @@
+{
+  "niche": "lawyer",
+  "schemaType": "LegalService",
+  "pages": ["home", "practice_areas", "about", "articles", "faq", "lead_form", "footer"],
+  "requiredComponents": ["Hero", "PracticeAreasGrid", "AboutBlock", "ArticlesList", "FaqAccordion", "LeadForm"],
+  "accentHex": "#1E3A8A",
+  "painPointSeeds": [
+    "לקוחות פוטנציאליים לא יודעים שאתה עוסק בתחום שלהם",
+    "אין דרך לבחון את האמינות שלך לפני שהם מתקשרים",
+    "אתר ישן מאותת 'לא רציני'",
+    "מתחרים עם בלוג מוצרי גוגל לוקחים את הלידים"
+  ],
+  "trustSignals": [
+    "תעודות והסמכות (תעודת לשכת עורכי הדין)",
+    "פסקי דין מפורסמים / case results",
+    "תמונה מקצועית של המייסד/ת",
+    "סקירות מ-Google"
+  ],
+  "imagePromptHints": ["professional law office", "books and gavel", "serious tone", "founder headshot"]
+}

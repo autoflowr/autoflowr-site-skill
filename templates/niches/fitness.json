@@ -1,0 +1,20 @@
+{
+  "niche": "fitness",
+  "schemaType": "ExerciseGym",
+  "pages": ["home", "classes", "packages", "transformations", "trainers", "faq", "lead_form", "footer"],
+  "requiredComponents": ["Hero", "ClassSchedule", "PackageCards", "BeforeAfterGrid", "TrainersGrid", "FaqAccordion", "LeadForm"],
+  "accentHex": "#F59E0B",
+  "painPointSeeds": [
+    "חברי הכושר עוזבים אחרי 3 חודשים",
+    "אנשים מפחדים להגיע — לא יודעים מה לצפות",
+    "המתחרים מציעים שיעור ניסיון בחינם, אצלך לא",
+    "אין סיפורי הצלחה ויזואליים — אין הוכחה חברתית"
+  ],
+  "trustSignals": [
+    "תמונות 'לפני/אחרי' של חברי הסטודיו",
+    "סקירות + ציטוטים אמיתיים",
+    "הצגת המאמנים והכשרתם",
+    "לוח שיעורים מעודכן ומובן"
+  ],
+  "imagePromptHints": ["dynamic workout shot", "modern gym equipment", "trainer-client interaction", "energy and motivation"]
+}

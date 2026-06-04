@@ -1,0 +1,19 @@
+{
+  "niche": "_default",
+  "schemaType": "LocalBusiness",
+  "pages": ["home", "services", "about", "faq", "lead_form", "footer"],
+  "requiredComponents": ["Hero", "ServicesList", "AboutBlock", "FaqAccordion", "LeadForm"],
+  "accentHex": "#A3E635",
+  "painPointSeeds": [
+    "לקוחות לא מוצאים אותך ב-Google",
+    "האתר הקיים לא ממיר ביקורים לפניות",
+    "פייסבוק/אינסטגרם זה לא נכס דיגיטלי שלך",
+    "מתחרים לוקחים את כל הלידים"
+  ],
+  "trustSignals": [
+    "ביקורות מ-Google",
+    "תמונות אמיתיות של העסק",
+    "פרטי קשר ברורים"
+  ],
+  "imagePromptHints": ["clean professional business hero", "warm lighting", "trust signals"]
+}

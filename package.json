@@ -1,0 +1,33 @@
+{
+  "name": "autoflowr-site-skill",
+  "version": "0.1.0",
+  "description": "Claude Code skill that generates per-business Next.js 15 websites for Autoflowr Studio clients",
+  "type": "module",
+  "bin": {
+    "build-business-site": "bin/build-business-site.js"
+  },
+  "scripts": {
+    "test:wireframe": "node bin/build-business-site.js \"מסעדת בדיקה\" restaurant --wireframe-only"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-skill",
+    "nextjs",
+    "website-generator",
+    "autoflowr",
+    "hebrew",
+    "rtl"
+  ],
+  "author": "Bar Dror (Autoflowr Studio)",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "kleur": "^4.1.5",
+    "slugify": "^1.6.6"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

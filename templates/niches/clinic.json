@@ -1,0 +1,20 @@
+{
+  "niche": "clinic",
+  "schemaType": "MedicalBusiness",
+  "pages": ["home", "treatments", "pricing", "team", "faq", "lead_form", "footer"],
+  "requiredComponents": ["Hero", "TreatmentCards", "PricingCallout", "TeamGrid", "FaqAccordion", "LeadForm"],
+  "accentHex": "#0EA5E9",
+  "painPointSeeds": [
+    "הלקוחות לא יודעים אם הטיפול מתאים להם בלי להגיע",
+    "אין שקיפות במחירים — מפחיד את הפניות",
+    "הצוות לא מוצג — אין אמון לפני התור הראשון",
+    "תמונות 'לפני/אחרי' שמורות באינסטגרם, לא נגישות באתר"
+  ],
+  "trustSignals": [
+    "תעודות מקצועיות של הצוות",
+    "תמונות אמיתיות של המקום והציוד",
+    "ביקורות אמיתיות עם שמות מלאים",
+    "שקיפות במחירים"
+  ],
+  "imagePromptHints": ["clean modern clinic interior", "professional medical equipment", "welcoming reception", "team portraits"]
+}

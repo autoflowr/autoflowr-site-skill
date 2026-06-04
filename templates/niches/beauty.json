@@ -1,0 +1,20 @@
+{
+  "niche": "beauty",
+  "schemaType": "BeautySalon",
+  "pages": ["home", "services", "gallery", "booking", "about", "faq", "footer"],
+  "requiredComponents": ["Hero", "ServicesList", "BeforeAfterGallery", "BookingForm", "AboutBlock", "FaqAccordion"],
+  "accentHex": "#EC4899",
+  "painPointSeeds": [
+    "הלקוחות לא רואים את התוצאות שלכן לפני שמגיעות",
+    "אין דרך לקבוע תור בלי להתקשר — מאבדים את 'הספונטניות'",
+    "מתחרות עם אינסטגרם חזק לוקחות את הלידים",
+    "אין שקיפות במחירים — אנשים מפחדים לשאול"
+  ],
+  "trustSignals": [
+    "גלריית לפני/אחרי עם תמונות אמיתיות",
+    "ביקורות מ-Google ו-Easy.co.il",
+    "תיק עבודות מסודר",
+    "הצגת מותגי המוצרים שאתן עובדות איתם"
+  ],
+  "imagePromptHints": ["soft pastel lighting", "luxurious salon interior", "before/after closeups", "elegant beauty product flatlay"]
+}
